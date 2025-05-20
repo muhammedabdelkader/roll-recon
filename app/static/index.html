@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Passive Recon UI</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    textarea { width: 100%; height: 200px; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Passive Recon Dashboard</h1>
+
+  <form id="reconForm">
+    <input type="text" id="domain" placeholder="example.com" required>
+    <button type="submit">Run Recon</button>
+  </form>
+
+  <h2>📜 History</h2>
+  <ul id="historyList"></ul>
+
+  <h2>📂 Results</h2>
+  <textarea id="resultBox" readonly></textarea>
+
+  <script>
+    const API_TOKEN = "secret123";
+    const API_BASE = window.location.origin;
+
+    async function fetchHistory(domain) {
+      const res = await fetch(`${API_BASE}/history/${domain}`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` }
+      });
+      const data = await res.json();
+      const historyList = document.getElementById("historyList");
+      historyList.innerHTML = "";
+      data.history.reverse().forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.timestamp} (${entry.line_count} lines)`;
+        li.onclick = () => loadFile(`/history/${domain}/${entry.timestamp}`);
+        historyList.appendChild(li);
+      });
+    }
+
+    async function loadFile(path) {
+      const res = await fetch(path);
+      const text = await res.text();
+      document.getElementById("resultBox").value = text;
+    }
+
+    document.getElementById("reconForm").onsubmit = async e => {
+      e.preventDefault();
+      const domain = document.getElementById("domain").value;
+      const res = await fetch(`${API_BASE}/recon`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({ domain })
+      });
+      const data = await res.json();
+      alert(`Scan started for ${data.domain}`);
+      fetchHistory(domain);
+    };
+  </script>
+</body>
+</html>
